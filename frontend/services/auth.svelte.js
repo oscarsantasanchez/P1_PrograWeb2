@@ -1,15 +1,32 @@
-// El estado global se define con $state
+// Recuperamos datos iniciales de localStorage si existen
+const savedToken = localStorage.getItem('token');
+const savedUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+
 let authData = $state({
-    token: null,
-    user: null,
-    isAuthenticated: false,
-    currentPage: 'login' // <--- AÑADIDO: Control de navegación
+    token: savedToken,
+    user: savedUser,
+    isAuthenticated: !!savedToken,
+    currentPage: savedToken ? 'productos' : 'login'
+});
+
+// REQUISITO EXTRA: $effect para persistencia y sincronización (Side Effect)
+$effect.root(() => {
+    $effect(() => {
+        if (authData.token) {
+            localStorage.setItem('token', authData.token);
+            localStorage.setItem('user', JSON.stringify(authData.user));
+        } else {
+            // Si el token pasa a ser null (Logout), limpiamos todo
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            authData.isAuthenticated = false;
+        }
+    });
 });
 
 export const authService = {
     get data() { return authData; },
 
-    // <--- AÑADIDO: Método para cambiar de pantalla
     navigate(page) {
         authData.currentPage = page;
     },
@@ -30,7 +47,7 @@ export const authService = {
             authData.token = res.token;
             authData.user = payload;
             authData.isAuthenticated = true;
-            authData.currentPage = 'productos'; // <--- AÑADIDO: Redirigir al entrar
+            authData.currentPage = 'productos';
 
             return { success: true };
         } catch (err) {
@@ -42,6 +59,6 @@ export const authService = {
         authData.token = null;
         authData.user = null;
         authData.isAuthenticated = false;
-        authData.currentPage = 'login'; // <--- AÑADIDO: Resetear al salir
+        authData.currentPage = 'login';
     }
 };

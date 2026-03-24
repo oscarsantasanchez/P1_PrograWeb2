@@ -4,9 +4,8 @@
     import ProductForm from "../components/ProductForm.svelte";
 
     let showForm = $state(false);
-    let loading = $state(false); // UX: Estado de carga
+    let loading = $state(false);
 
-    // Punto Extra Svelte 5: Carga de datos con efecto y feedback
     $effect(() => {
         loading = true;
         productService.fetchAll().finally(() => {
@@ -24,7 +23,6 @@
         showForm = true;
     }
 
-    // UX: Confirmación antes de borrar
     async function confirmDelete(id) {
         if (confirm("¿Estás seguro de que deseas eliminar este producto?")) {
             await productService.remove(id);
@@ -34,9 +32,24 @@
 
 <div class="products-container">
     <header class="table-header">
-        <h2>Gestión de Productos</h2>
+        <div>
+            <h2>Gestión de Productos</h2>
+            <p class="stats-text">
+                Mostrando <strong>{productService.stats.total}</strong>
+                productos ({productService.stats.activos} activos)
+            </p>
+        </div>
         <button class="btn-add" onclick={openCreate}> + Nuevo Producto </button>
     </header>
+
+    <div class="search-container">
+        <input
+            type="text"
+            placeholder="🔍 Buscar por nombre..."
+            bind:value={productService.searchTerm}
+            class="search-input"
+        />
+    </div>
 
     {#if showForm}
         <div class="modal-overlay">
@@ -58,7 +71,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {#each productService.list as p}
+                    {#each productService.filteredList as p}
                         <tr>
                             <td><strong>{p.nombre}</strong></td>
                             <td>{p.precio}€</td>
@@ -81,9 +94,8 @@
                                     <button
                                         class="btn-delete"
                                         onclick={() => confirmDelete(p.id)}
+                                        >Borrar</button
                                     >
-                                        Borrar
-                                    </button>
                                 {/if}
                             </td>
                         </tr>
@@ -95,18 +107,47 @@
 </div>
 
 <style>
+    /* Nuevos estilos para el buscador y stats */
+    .stats-text {
+        margin: 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .search-container {
+        margin-bottom: 20px;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #eee;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: #2196f3;
+        background: #f1f8ff;
+    }
+
+    /* Estilo para cuando no hay resultados */
+    tr:only-child td:empty {
+        display: none;
+    }
+
+    /* El resto del CSS que ya tenías (table-header, btn-add, etc.) */
     .products-container {
         padding: 20px 0;
     }
-
     .table-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
     }
-
-    /* UX: Botones con colores semánticos */
     .btn-add {
         background-color: #4caf50;
         color: white;
@@ -121,15 +162,17 @@
         color: white;
         border: none;
         cursor: pointer;
+        padding: 6px 12px;
+        border-radius: 4px;
     }
     .btn-delete {
         background-color: #f44336;
         color: white;
         border: none;
         cursor: pointer;
+        padding: 6px 12px;
+        border-radius: 4px;
     }
-
-    /* Estilos de la tabla */
     .table-responsive {
         width: 100%;
         overflow-x: auto;
@@ -137,39 +180,27 @@
         border-radius: 12px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     }
-
     table {
         width: 100%;
         border-collapse: collapse;
         min-width: 600px;
     }
-
     th {
         background-color: #f8f9fa;
         color: #333;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.75rem;
-        letter-spacing: 0.05em;
-    }
-
-    th,
-    td {
         padding: 16px;
         text-align: left;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+    }
+    td {
+        padding: 16px;
         border-bottom: 1px solid #eee;
     }
-
-    tr:hover {
-        background-color: #fcfcfc;
-    }
-
-    /* Badges de estado */
     .status-badge {
         padding: 4px 8px;
         border-radius: 20px;
         font-size: 0.8rem;
-        font-weight: 500;
     }
     .active {
         background-color: #e8f5e9;
@@ -179,13 +210,10 @@
         background-color: #ffebee;
         color: #c62828;
     }
-
     .actions {
         display: flex;
         gap: 8px;
     }
-
-    /* Modal Overlay */
     .modal-overlay {
         position: fixed;
         top: 0;
@@ -197,26 +225,5 @@
         justify-content: center;
         align-items: center;
         z-index: 1000;
-    }
-
-    .loading-state {
-        text-align: center;
-        padding: 40px;
-        color: #666;
-        font-style: italic;
-    }
-
-    /* Responsive */
-    @media (max-width: 600px) {
-        .table-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 15px;
-        }
-
-        button {
-            width: 100%;
-            margin-bottom: 5px;
-        }
     }
 </style>
